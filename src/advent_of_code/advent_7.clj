@@ -307,15 +307,62 @@
 ;               (cycle amplifiers)))
 ;           (parameters-seq)))))
 
-;(defn emulate-robot [program-state colors steps x y direction]
-;  (if (= :halt (:state program-state))
-;    steps
-;    (let [color (get [x y] colors 0)
-;          program-state (evaluate (assoc program-state :input [color]))
-;          [paint-color next-direction] (:output program-state)
-;          ]
-;      )))
+(defn next-step [x y direction]
+  (case direction
+    :up [x (inc y)]
+    :right [(inc x) y]
+    :down [x (dec y)]
+    :left [(dec x) y]))
 
-(let [program (parse-input input)]
-  (clojure.pprint/pprint
-    (get-without-program (evaluate (create-initial-state program [0])))))
+(defn next-direction [directions direction turn]
+  (let [direction-index (.indexOf directions direction)
+        turn (if (== 0 turn) -1 turn)
+        length (count directions)
+        direction (mod (+ length direction-index turn) length)]
+    (get directions direction)))
+
+(def DIRECTIONS [:up :right :down :left])
+
+(defn emulate-robot [program-state colors steps x y direction]
+  (do
+    #_(clojure.pprint/pprint
+        [
+         (get-without-program program-state)
+         colors
+         steps
+         directions
+         x y])
+    (if (= :halt (:state program-state))
+      [colors steps]
+      (let [color (get colors [x y] 0)
+            program-state (evaluate (-> program-state
+                                        (assoc :input [color])
+                                        (assoc :output [])))
+            [paint-color turn] (:output program-state)
+            colors (assoc colors [x y] paint-color)
+            direction (next-direction DIRECTIONS direction turn)
+            steps (conj steps [x y])
+            [x y] (next-step x y direction)]
+        (recur program-state colors steps x y direction)))))
+
+(defn max-min-grid [keys]
+  (let [xs (vec (map (fn [[x y]] x) keys))
+        ys (vec (map (fn [[x y]] y) keys))]
+    [(reduce min xs)
+     (reduce max xs)
+     (reduce min ys)
+     (reduce max ys)]))
+
+(defn print-grid [colors]
+  (let [[min-x max-x min-y max-y] (max-min-grid (keys colors))]
+    (for [y (reverse (range min-y (inc max-y)))]
+      (reduce
+        str
+        (map
+          (fn [key] (if (= 0 (get colors key 0)) "." "#"))
+          (for [x (range min-x (inc max-x))] [x y]))))))
+
+(let [program (parse-input input)
+      program-state (create-initial-state program [1])
+      [colors steps] (emulate-robot program-state {} [] 0 0 DIRECTIONS)]
+  (print-grid colors))
