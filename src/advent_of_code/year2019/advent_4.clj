@@ -1,4 +1,4 @@
-(ns advent_of_code.advent-4
+(ns advent_of_code.year2019.advent-4
   :require clojure.set)
 
 
