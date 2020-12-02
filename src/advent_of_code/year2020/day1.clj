@@ -17,7 +17,6 @@
                second-number numbers]
            [first-number second-number])
          (map (partial find-number-with-sum number->frequency target-sum))
-         (filter some?)
          (some identity))))
 
 (defn multiply-result-values [coll]
